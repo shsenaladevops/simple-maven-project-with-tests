@@ -1,32 +1,79 @@
 pipeline {
     agent any
 
-    tools {
-        // Install the Maven version configured as "M3" and add it to the path.
-        maven "M3"
+    environment {
+        APP_NAME = "demo-app"
     }
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                echo "Building branch: ${env.BRANCH_NAME}"
+            }
+        }
+
         stage('Build') {
             steps {
-                // Get some code from a GitHub repository
-                git 'https://github.com/shsenaladevops/simple-maven-project-with-tests.git'
-
-                // Run Maven on a Unix agent.
-                sh "mvn -Dmaven.test.failure.ignore=true clean package"
-
-                // To run Maven on a Windows agent, use
-                // bat "mvn -Dmaven.test.failure.ignore=true clean package"
+                sh 'mvn clean package -DskipTests'
             }
+        }
 
-            post {
-                // If Maven was able to run the tests, even if some of the test
-                // failed, record the test results and archive the jar file.
-                success {
-                    junit '**/target/surefire-reports/TEST-*.xml'
-                    archiveArtifacts 'target/*.jar'
-                }
+        stage('Test') {
+            when {
+                not { branch 'main' }
             }
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Deploy to DEV') {
+            when {
+                branch pattern: "feature/.*", comparator: "REGEXP"
+            }
+            steps {
+                echo "Deploying ${APP_NAME} to DEV environment"
+            }
+        }
+
+        stage('Deploy to QA') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                echo "Deploying ${APP_NAME} to QA environment"
+            }
+        }
+
+        stage('Approval for PROD') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input message: "Approve deployment to PROD?", ok: "Deploy"
+            }
+        }
+
+        stage('Deploy to PROD') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "🚀 Deploying ${APP_NAME} to PROD environment"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline SUCCESS for ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "Pipeline FAILED for ${env.BRANCH_NAME}"
+        }
+        always {
+            echo "Pipeline finished for ${env.BRANCH_NAME}"
         }
     }
 }
