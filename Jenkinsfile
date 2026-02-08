@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent {dev}
 
     environment {
         APP_NAME = "demo-app"
