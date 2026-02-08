@@ -1,5 +1,5 @@
 pipeline {
-    agent {dev}
+    agent { label 'dev' }
 
     environment {
         APP_NAME = "demo-app"
@@ -10,6 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "Building branch: ${env.BRANCH_NAME}"
+                echo "Running on node: ${env.NODE_NAME}"
             }
         }
 
